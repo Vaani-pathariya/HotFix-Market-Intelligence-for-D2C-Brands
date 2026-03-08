@@ -2,7 +2,7 @@
 Scrape trigger API — allows frontend to kick off background scraping jobs.
 """
 import uuid
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, BackgroundTasks
 from pydantic import BaseModel
 from app.tasks.scrape_tasks import run_review_scrape, run_competitor_scrape
 from app.db.session import SessionLocal
@@ -37,31 +37,33 @@ class ScrapeRequest(BaseModel):
 
 
 @router.post("/scrape/reviews")
-def trigger_review_scrape(req: ScrapeRequest):
+def trigger_review_scrape(req: ScrapeRequest, background_tasks: BackgroundTasks):
     """Trigger a background job to scrape reviews for an Amazon product."""
     asin = extract_asin(req.url)
     if not asin:
         raise HTTPException(status_code=400, detail="Could not extract a valid Amazon ASIN from the URL.")
 
-    task = run_review_scrape.delay(asin, req.brand_id)
+    job_id = str(uuid.uuid4())
+    background_tasks.add_task(run_review_scrape, asin, job_id, req.brand_id)
     return {
-        "job_id": task.id,
+        "job_id": job_id,
         "asin": asin,
         "status": "pending",
-        "message": f"Review scraping started for ASIN {asin}. Check /api/v1/scrape/status/{task.id} for progress."
+        "message": f"Review scraping started for ASIN {asin}. Check /api/v1/scrape/status/{job_id} for progress."
     }
 
 
 @router.post("/scrape/competitor")
-def trigger_competitor_scrape(req: ScrapeRequest):
+def trigger_competitor_scrape(req: ScrapeRequest, background_tasks: BackgroundTasks):
     """Trigger a background job to scrape competitor product info."""
     asin = extract_asin(req.url)
     if not asin:
         raise HTTPException(status_code=400, detail="Could not extract a valid Amazon ASIN from the URL.")
 
-    task = run_competitor_scrape.delay(asin, req.label, req.brand_id)
+    job_id = str(uuid.uuid4())
+    background_tasks.add_task(run_competitor_scrape, asin, job_id, req.label, req.brand_id)
     return {
-        "job_id": task.id,
+        "job_id": job_id,
         "asin": asin,
         "status": "pending",
         "message": f"Competitor scraping started for ASIN {asin}."
@@ -74,13 +76,9 @@ def get_scrape_status(job_id: str):
     db = SessionLocal()
     try:
         job = db.query(ScrapeJob).filter(ScrapeJob.job_id == job_id).first()
-        if not job:
-            # Fall back to Celery task state
-            from app.tasks import celery_app
-            result = celery_app.AsyncResult(job_id)
             return {
                 "job_id": job_id,
-                "status": result.state.lower(),
+                "status": "pending",
                 "items_scraped": 0,
             }
 

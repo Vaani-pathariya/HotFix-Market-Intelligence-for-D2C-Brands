@@ -6,7 +6,6 @@ These run asynchronously without blocking the API.
 import asyncio
 import uuid
 from datetime import datetime
-from app.tasks import celery_app
 from app.db.session import SessionLocal
 from app.models.review import Review
 from app.models.product import TrackedProduct
@@ -24,8 +23,7 @@ def _run_async(coro):
         loop.close()
 
 
-@celery_app.task(bind=True, name="scrape_tasks.run_review_scrape")
-def run_review_scrape(self, asin: str, brand_id: str = None):
+def run_review_scrape(asin: str, job_id: str, brand_id: str = None):
     """
     Background task: scrape Amazon reviews for an ASIN and persist to DB.
     Returns a summary dict with items_scraped and status.
@@ -36,7 +34,7 @@ def run_review_scrape(self, asin: str, brand_id: str = None):
     try:
         # Create scrape job record
         job = ScrapeJob(
-            job_id=self.request.id or str(uuid.uuid4()),
+            job_id=job_id,
             job_type="reviews",
             asin=asin,
             status="running",
@@ -97,8 +95,7 @@ def run_review_scrape(self, asin: str, brand_id: str = None):
         db.close()
 
 
-@celery_app.task(bind=True, name="scrape_tasks.run_competitor_scrape")
-def run_competitor_scrape(self, asin: str, label: str = "Competitor", brand_id: str = None):
+def run_competitor_scrape(asin: str, job_id: str, label: str = "Competitor", brand_id: str = None):
     """
     Background task: scrape competitor product info from Amazon and persist to DB.
     """
@@ -107,7 +104,7 @@ def run_competitor_scrape(self, asin: str, label: str = "Competitor", brand_id: 
 
     try:
         job = ScrapeJob(
-            job_id=self.request.id or str(uuid.uuid4()),
+            job_id=job_id,
             job_type="competitor",
             asin=asin,
             status="running",
