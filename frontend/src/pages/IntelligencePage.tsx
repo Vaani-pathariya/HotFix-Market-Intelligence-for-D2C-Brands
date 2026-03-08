@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Star, TrendingDown, TrendingUp, AlertTriangle, Radio, ExternalLink } from 'lucide-react';
+import { Star, TrendingDown, AlertTriangle, Radio, ExternalLink } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, Cell } from 'recharts';
 import { getReviews, getCompetitors } from '../services/api';
 

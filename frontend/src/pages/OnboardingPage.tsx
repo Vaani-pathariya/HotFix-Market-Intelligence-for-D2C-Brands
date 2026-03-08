@@ -124,7 +124,7 @@ export default function OnboardingPage({ onComplete }: Props) {
         {step === 2 && (
           <>
             <div className="onboarding-step-label">Step 2 of 3 — Your Products</div>
-            <div className="onboarding-title">What产品 categories do you sell?</div>
+            <div className="onboarding-title">What categories do you sell?</div>
             <div className="onboarding-subtitle">
               Enter the main branches of your product line (e.g. "Face Wash", "Vitamin C Serum"). We'll simulate finding relevant reviews across the web.
             </div>
