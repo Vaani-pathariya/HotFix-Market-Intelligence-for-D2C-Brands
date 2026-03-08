@@ -1,0 +1,87 @@
+# Render Blueprint for MarketSense AI
+# This file defines the entire infrastructure (Databases, Web Server, Worker, Frontend)
+# It allows for a 1-click deployment on Render.com
+
+services:
+  # 1. PostgreSQL Database
+  - type: psql
+    name: marketsense-db
+    plan: free
+
+  # 2. Redis Cache (for Celery Tasks)
+    # Render recently removed the free Redis tier from yaml, but you can create one manually in the dashboard.
+    # We will define a background worker that connects to it.
+  - type: redis
+    name: marketsense-redis
+    plan: free
+    ipAllowList: []
+
+  # 3. FastAPI Backend
+  - type: web
+    name: marketsense-backend
+    env: python
+    buildCommand: |
+      cd backend
+      pip install -r requirements.txt
+    startCommand: |
+      cd backend
+      alembic upgrade head || true
+      uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: marketsense-db
+          property: connectionString
+      - key: REDIS_URL
+        fromService:
+          type: redis
+          name: marketsense-redis
+          property: connectionString
+      - key: AWS_ACCESS_KEY_ID
+        sync: false
+      - key: AWS_SECRET_ACCESS_KEY
+        sync: false
+      - key: AWS_DEFAULT_REGION
+        value: us-east-1
+
+  # 4. Celery Worker
+  - type: worker
+    name: marketsense-worker
+    env: python
+    buildCommand: |
+      cd backend
+      pip install -r requirements.txt
+    startCommand: |
+      cd backend
+      celery -A app.tasks.celery_app worker --loglevel=info
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: marketsense-db
+          property: connectionString
+      - key: REDIS_URL
+        fromService:
+          type: redis
+          name: marketsense-redis
+          property: connectionString
+      - key: AWS_ACCESS_KEY_ID
+        sync: false
+      - key: AWS_SECRET_ACCESS_KEY
+        sync: false
+      - key: AWS_DEFAULT_REGION
+        value: us-east-1
+
+  # 5. React Frontend
+  - type: web
+    name: marketsense-frontend
+    env: node
+    buildCommand: |
+      cd frontend
+      npm install
+      npm run build
+    startCommand: |
+      cd frontend
+      npm run preview -- --port $PORT --host 0.0.0.0
+    envVars:
+      - key: VITE_API_URL
+        value: "https://marketsense-backend.onrender.com/api/v1"
