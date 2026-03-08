@@ -20,7 +20,7 @@ This codebase is capable of executing entirely locally, but natively integrates 
 * **Amazon DynamoDB**: Scalable NoSQL table (`MarketSenseReviews`) handling unstructured customer review JSON documents.
 * **Amazon SageMaker**: Machine learning inference endpoint to accurately flag percentage anomalies in trailing time-series sales.
 
-## Getting Started
+## Getting Started (Local Development)
 
 Make sure you have Docker Desktop installed and running.
 
@@ -43,6 +43,40 @@ cd frontend
 npm install
 npm run dev
 ```
+
+## Cloud Deployment (Render Free Tier)
+
+You can completely host this platform for free securely on Render by manually creating the 3 services:
+
+### 1. Database (PostgreSQL)
+1. Go to Render.com -> **New +** -> **PostgreSQL**.
+2. Name it `marketsense-db`, select the **Free** tier, and click **Create Database**.
+3. Once created, copy the **Internal Database URL**.
+
+### 2. Backend (Web Service)
+1. Go to **New +** -> **Web Service**.
+2. Connect your GitHub repository.
+3. Name it `marketsense-backend`, Set Environment to **Python 3**.
+4. Set Build Command: `cd backend && pip install -r requirements.txt`
+5. Set Start Command: `cd backend && alembic upgrade head || true && uvicorn app.main:app --host 0.0.0.0 --port $PORT`
+6. Under **Environment Variables**, add:
+   - `DATABASE_URL`: (Paste the Internal DB URL you copied earlier)
+   - `AWS_ACCESS_KEY_ID`: (Your AWS Key)
+   - `AWS_SECRET_ACCESS_KEY`: (Your AWS Secret)
+   - `AWS_DEFAULT_REGION`: `us-east-1`
+7. Select the **Free** tier and click **Create Web Service**.
+8. Once live, copy your backend URL (e.g., `https://marketsense-backend.onrender.com`).
+
+### 3. Frontend (Web Service / Static Site)
+1. Go to **New +** -> **Web Service** or **Static Site**.
+2. Connect your GitHub repository.
+3. Name it `marketsense-frontend`, Set Environment to **Node**.
+4. Set Build Command: `cd frontend && npm install && npm run build`
+5. Set Start Command (if Web Service): `cd frontend && npm run preview -- --port $PORT --host 0.0.0.0`
+   - *(If using Static Site, just set the Publish directory to `frontend/dist`)*
+6. Under **Environment Variables**, add:
+   - `VITE_API_URL`: (Paste your backend URL with `/api/v1` appended, e.g., `https://marketsense-backend.onrender.com/api/v1`)
+7. Select the **Free** tier and click **Create Service**!
 
 ## Evaluation Process
 
