@@ -60,6 +60,7 @@ You can completely host this platform for free securely on Render by manually cr
 4. Set Build Command: `cd backend && pip install -r requirements.txt`
 5. Set Start Command: `cd backend && alembic upgrade head || true && uvicorn app.main:app --host 0.0.0.0 --port $PORT`
 6. Under **Environment Variables**, add:
+   - `PYTHON_VERSION`: `3.11.9`
    - `DATABASE_URL`: (Paste the Internal DB URL you copied earlier)
    - `AWS_ACCESS_KEY_ID`: (Your AWS Key)
    - `AWS_SECRET_ACCESS_KEY`: (Your AWS Secret)
