@@ -2,19 +2,18 @@
 # This file defines the entire infrastructure (Databases, Web Server, Worker, Frontend)
 # It allows for a 1-click deployment on Render.com
 
-services:
-  # 1. PostgreSQL Database
-  - type: psql
-    name: marketsense-db
+databases:
+  - name: marketsense-db
     plan: free
 
+services:
   # 2. Redis Cache (for Celery Tasks)
-    # Render recently removed the free Redis tier from yaml, but you can create one manually in the dashboard.
-    # We will define a background worker that connects to it.
-  - type: redis
+  # Deploying Redis as a private Docker service
+  - type: pserv
     name: marketsense-redis
+    env: docker
+    dockerfilePath: ./backend/Dockerfile.redis
     plan: free
-    ipAllowList: []
 
   # 3. FastAPI Backend
   - type: web
